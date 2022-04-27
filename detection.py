@@ -85,7 +85,6 @@ def chat(message):
     device.input_text(message)
     device.input_tap(1565,870) #click to send button
     device.input_tap(60,25)
-    print("Bot said: "+message)
     sleep(1)
 def randomCode():
     random_code = ""
@@ -102,6 +101,7 @@ def groupTextFromPos(text,pos):
     return res        
 def getCoordList(data):
     text = data["text"]
+    #print("getCoordList: text{}".format(text))
     list = []
     info = {}
     for i in range(0,len(text)):
@@ -113,24 +113,31 @@ def getCoordList(data):
                 res = [False, False]
                 for j in range(i+1,len(text)):
                     if text[j] != '':
-                        if text[j][0] == "X":
-                            info["x"] = text[j]
-                            res[0] = True
-                        elif text[j][0] == "Y":
+                        if text[j][0].lower() == "x":
+                            if(len(text[j]) > 2):
+                                info["x"] = text[j].replace("X:", "")
+                                res[0] = True
+                        elif text[j][0].lower() == "y":
                             if(len(text[j]) == 2):
-                                info["y"] = text[j] + groupTextFromPos(text,j+1)
+                                info["y"] = groupTextFromPos(text,j+1)
                             else:
-                                info["y"] = text[j]
+                                info["y"] = text[j].replace("Y:", "")
+                            if info["y"][-1] == ")":
+                                info["y"] = info["y"].replace(")", "")
                             res[1] = True
+                            if res[0] == False:
+                                info["x"] = text[j-1];
                         if res[0] is True and res[1] is True:
                             list.append(info)
                             info = {}
                             break
             else:
                 continue
+    #print("getCoordList: list{}".format(list))
     return list
 def getCoordNth(data,pos):
     text = data["text"]
+    #print("getCoordNth: text{}".format(text))
     info = {}
     for i in range(pos,len(text)):
         if text[i] == "Shared":
@@ -141,31 +148,37 @@ def getCoordNth(data,pos):
                 res = [False, False]
                 for j in range(i+1,len(text)):
                     if text[j] != '':
-                        if text[j][0] == "X":
-                            info["x"] = text[j]
-                            res[0] = True
-                        elif text[j][0] == "Y":
+                        if text[j][0].lower() == "x":
+                            if(len(text[j]) > 2):
+                                info["x"] = text[j].replace("X:", "")
+                                res[0] = True
+                        elif text[j][0].lower() == "y":
                             if(len(text[j]) == 2):
-                                info["y"] = text[j] + groupTextFromPos(text,j+1)
+                                info["y"] = groupTextFromPos(text,j+1)
                             else:
-                                info["y"] = text[j]
+                                info["y"] = text[j].replace("Y:", "")
+                            if info["y"][-1] == ")":
+                                info["y"] = info["y"].replace(")", "")
                             res[1] = True
+                            if res[0] == False:
+                                info["x"] = text[j-1];
                         if res[0] is True and res[1] is True:
                             break
                 break
             else:
                 continue
+    #print("getCoordNth: info{}".format(info))
     return info
 def detectDone():
-    word_done = ("done","xong","cảm ơn","thanks")
-    time_for_duke = 180
+    word_done = ("done","xong","cảm ơn","thank","thanks","ty")
+    time_for_duke = 120
     now = time.time()
     coord_message_list = (415,45,1140,895)
     result = False
     while True:
-        print("User done not detect with command in white list!!!")
+        print("detectDone: Waiting for message from player.")
         img = take_screenshot(device)
-        sleep(1)
+        sleep(2)
         current_time = time.time()
         img = Image.open(io.BytesIO(img))
         messageList = img.crop(coord_message_list)
@@ -176,26 +189,28 @@ def detectDone():
         #cv.waitKey(0)
         data = getDataImage(threshold_img)
         for i in range(len(data["text"]),0,-1):
-            if data["text"][i-1] == "on" and data["text"][i] == "you":
+            if data["text"][i-1] == "on" and data["text"][i] == "you.":
                 for j in range(i+1, len(data["text"])):
-                    if(data["text"][j].lower() in word_done):
-                        print(data["text"][j])
+                    txt = data["text"][j].lower()
+                    txt = txt.replace(',', '')
+                    txt = txt.replace('.', '')
+                    txt = txt.replace('!', '')
+                    if(txt in word_done):
                         result = True
                         break
                 break
         if result is True:
-            print("User was done!!! Loading next player")
+            print("detectDone: Current player was done, loading next player.")
             break
         if current_time - now > time_for_duke:
-            chat(" Over time, I'm will load next player!!!")
+            print("detectDone: Current player was over time, loading next player.")
+            chat("Time's up!")
             break
 def scrollUp():
     device.input_swipe(950,140,950,550, 1000)
-    print("I'm scrolling up!!!")
     sleep(1)
 def scrollDown():
     device.input_swipe(950,550,950,140, 1000)
-    print("I'm scrolling down")
     sleep(1)
 def scrollDownToFindCoord():
     res = ""
@@ -206,28 +221,29 @@ def scrollDownToFindCoord():
         coord_message_list = (415,45,780,895)
         scrollDown()
         img = take_screenshot(device)
-        sleep(1)
+        sleep(2)
         img = Image.open(io.BytesIO(img))
         leftMessage = img.crop(coord_message_list)
         leftMessage = converImagePilToCV(leftMessage)
         data = getDataImage(leftMessage)
         infoCoords = getCoordList(data)
-        print(infoCoords)
-        if len(infoCoords) >0:
+        #print(infoCoords)
+        if len(infoCoords) > 0:
             for i in range(0,len(infoCoords)):
-                if infoCoords[i]["x"] != info["x"] and infoCoords[i]["y"] != info["y"]:
+                if infoCoords[i]["x"] != info["x"] or infoCoords[i]["y"] != info["y"]:
                     infoCoord = infoCoords[i].copy()
                     res = "action"
         if res == "":
             if array_equal(data["text"],lastText):
                 res = "refresh"
     while res == "":
-        print("Not found user want duke!!!")
         inside()
+        if len(infoCoord) == 0:
+            print("scrollDownToFindCoord: No player request Duke title at the moment.")
     if res == "action":
         actionTitle(infoCoord)
     elif res == "refresh":
-         reFreshFrame()
+        reFreshFrame()
 def scrollTopToFindCoord(config):
     infoCoord = {}
     res = ""
@@ -237,16 +253,16 @@ def scrollTopToFindCoord(config):
         coord_message_list = (415,45,780,895)
         if config is True:
             scrollUp()
-        print(config)
+        #print(config)
         img = take_screenshot(device)
-        sleep(1)
+        sleep(2)
         img = Image.open(io.BytesIO(img))
         leftMessage = img.crop(coord_message_list)
         leftMessage = converImagePilToCV(leftMessage)
         data = getDataImage(leftMessage)
         infoCoords = getCoordList(data)
-        print(infoCoords)
-        if len(infoCoords) >0:
+        #print(infoCoords)
+        if len(infoCoords) > 0:
             for i in range(0,len(infoCoords)):
                 if infoCoords[i]["x"] == info["x"] and infoCoords[i]["y"] == info["y"]:
                     if(i == len(infoCoords) - 1): #last_element_in screen
@@ -278,14 +294,13 @@ def actionTitle(infoCoord):
     coord_target_title_confirm = (800,800)
 
     info = infoCoord
-    print(info)
+    #print(info)
     position = ()
     if "positionInImg" in info:
         position = (info["left"], info["top"])
     if len(position):
-        print("Found user want duke!!!")
+        print("actionTitle: Found a player requesting Duke title.")
         position = (position[0]+415, position[1] + 50)
-        print(position)
         coord_position_avatar = [position[0] - 45, position[1] - 10]
         clickToTarget((position[0] + 10, position[1] + 5))
         sleep(5) #wait 5s for loading postion animation
@@ -296,23 +311,21 @@ def actionTitle(infoCoord):
         clickToTarget(coord_target_title_duke)
         sleep(0.5)
         clickToTarget(coord_target_title_confirm)
+        sleep(1)
         '''
         take_screenshot(device=device)
-        sleep(1)
+        sleep(2)
         img = Image.open('screen.png')
         coord_channel_Target = (600,82,990,130) #left top right bottom
         imageChannelTarget = img.crop(coord_channel_Target)'''
         #if getUserProfile(imageChannelTarget,img) is True:
         clickToTarget((coord_chat_button[0],coord_chat_button[1])) #click to chat button
         sleep(1)
-        device.input_swipe(coord_position_avatar[0],coord_position_avatar[1] , coord_position_avatar[0],coord_position_avatar[1], 2500) #Metion user
+        device.input_swipe(coord_position_avatar[0], coord_position_avatar[1], coord_position_avatar[0], coord_position_avatar[1], 2000) #Metion user
         sleep(2.5)
-        chat(" on you")
-        chat(" time for duke is 3 min. I'm waiting in 3 min.")
+        chat("on you.")
         detectDone()
         scrollTopToFindCoord(False)
-    else:
-        print("Nothing see coord!!!")
 def makeReFresh():
     infoCoord = {}
     def inside():
@@ -320,12 +333,12 @@ def makeReFresh():
         nonlocal infoCoord
         coord_message_list = (415,45,1140,895)
         img = take_screenshot(device)
-        sleep(1)
+        sleep(2)
         img = Image.open(io.BytesIO(img))
         leftMessage = img.crop(coord_message_list)
         imgLeft = converImagePilToCV(leftMessage)
         data = getDataImage(imgLeft)
-        #print(data)
+        #print("makeReFresh: data{}".format(data))
         for i in range(0,len(data["text"])):
             if mark_message in data["text"][i] or mark_message == data["text"][i]:
                 infoCoord = getCoordNth(data,i)
@@ -333,7 +346,8 @@ def makeReFresh():
         return infoCoord
     while True:
         infoCoord = inside()
-        print("MakeRefresh: Not find user want duke in chat room!!!")
+        if len(infoCoord) == 0:
+            print("makeReFresh: No player request Duke title at the moment.")
         if "x" in infoCoord:
             break
     actionTitle(infoCoord)    
@@ -345,13 +359,13 @@ def reFreshFrame():
         nonlocal res,infoCoords
         coord_message_list = (415,45,780,895)
         img = take_screenshot(device)
-        sleep(1)
+        sleep(2)
         img = Image.open(io.BytesIO(img))
         leftMessage = img.crop(coord_message_list)
         leftMessage = converImagePilToCV(leftMessage)
         data = getDataImage(leftMessage)
         infoCoords = getCoordList(data)
-        print(infoCoords)
+        #print(infoCoords)
         founded = False
         if len(infoCoords) >0:
             for i in range(0,len(infoCoords)):
@@ -362,10 +376,11 @@ def reFreshFrame():
                     else:
                         res = "action"
                         infoCoords = infoCoords[i+1].copy()
+                        break
             if founded is False:
                 infoCoords = infoCoords[0].copy()
     while res == "":
-        print("refreshFrame: Not found user want duke in chat room")
+        print("reFreshFrame: No player request Duke title at the moment.")
         sleep(2)
         inside()
     if res == "action":
@@ -377,7 +392,9 @@ coord_channel_close = (1365,105)
 lastText = []
 print("Starting...")
 mark_message = randomCode()
-chat("Bot starting with code: "+mark_message)
+chat("Bot is starting with a new session. To receive Duke title, please share your city coordinates here. Time limit for each player: 2 minutes.")
+sleep(3)
+chat("Bot started! -"+mark_message)
 info = {}
 makeReFresh()
         
