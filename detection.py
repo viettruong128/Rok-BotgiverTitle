@@ -189,7 +189,7 @@ def detectDone():
         #cv.waitKey(0)
         data = getDataImage(threshold_img)
         for i in range(len(data["text"]),0,-1):
-            if data["text"][i-1] == "on" and data["text"][i] == "you.":
+            if data["text"][i-2] == "on" and data["text"][i-1] == "you." and data["text"][i] == "-" + mark_message:
                 for j in range(i+1, len(data["text"])):
                     txt = data["text"][j].lower()
                     txt = txt.replace(',', '')
@@ -213,6 +213,7 @@ def scrollDown():
     device.input_swipe(950,550,950,140, 1000)
     sleep(1)
 def scrollDownToFindCoord():
+    global mark_message
     res = ""
     infoCoord = {}
     def inside():
@@ -243,8 +244,12 @@ def scrollDownToFindCoord():
     if res == "action":
         actionTitle(infoCoord)
     elif res == "refresh":
-        reFreshFrame()
+        mark_message = randomCode()
+        chat("New session started! -"+mark_message)
+        info = {}
+        makeReFresh()
 def scrollTopToFindCoord(config):
+    global mark_message
     infoCoord = {}
     res = ""
     def inside(config):
@@ -280,11 +285,14 @@ def scrollTopToFindCoord(config):
     if res == "action":
         actionTitle(infoCoord)
     elif res == "refresh":
-         reFreshFrame()
+        mark_message = randomCode()
+        chat("New session started! -"+mark_message)
+        info = {}
+        makeReFresh()
     elif res == "scrollDown":
         scrollDownToFindCoord()
 def actionTitle(infoCoord):
-    global info
+    global info, mark_message
     coord_message_list = (415,45,780,895)
     coord_target_home = (790,460)
     coord_target_profile_info = (935,305)
@@ -323,7 +331,7 @@ def actionTitle(infoCoord):
         sleep(1)
         device.input_swipe(coord_position_avatar[0], coord_position_avatar[1], coord_position_avatar[0], coord_position_avatar[1], 2000) #Metion user
         sleep(2.5)
-        chat("on you.")
+        chat("on you. -" + mark_message)
         detectDone()
         scrollTopToFindCoord(False)
 def makeReFresh():
@@ -350,33 +358,7 @@ def makeReFresh():
             print("makeReFresh: No player request Duke title at the moment.")
         if "x" in infoCoord:
             break
-    actionTitle(infoCoord)    
-def reFreshFrame():
-    infoCoord = {}
-    res = ""
-    def inside():
-        global info
-        nonlocal res,infoCoord
-        coord_message_list = (415,45,780,895)
-        img = take_screenshot(device)
-        sleep(2)
-        img = Image.open(io.BytesIO(img))
-        leftMessage = img.crop(coord_message_list)
-        leftMessage = converImagePilToCV(leftMessage)
-        data = getDataImage(leftMessage)
-        infoCoords = getCoordList(data)
-        #print(infoCoords)
-        if len(infoCoords) > 0:
-            for i in range(0,len(infoCoords)):
-                if infoCoords[i]["x"] != info["x"] or infoCoords[i]["y"] != info["y"]:
-                    res = "action"
-                    infoCoord = infoCoords[i].copy()
-    while res == "":
-        print("reFreshFrame: No player request Duke title at the moment.")
-        sleep(2)
-        inside()
-    if res == "action":
-        actionTitle(infoCoord)
+    actionTitle(infoCoord)
 coord_left_message = (415,50,760,840)
 coord_channel_close = (1365,105)
 #info = {'left': 77, 'top': 396, 'positionInImg': 39, 'x': 'X:781', 'y': 'Y:508)'}
