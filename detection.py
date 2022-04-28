@@ -352,11 +352,11 @@ def makeReFresh():
             break
     actionTitle(infoCoord)    
 def reFreshFrame():
-    infoCoords = {}
+    infoCoord = {}
     res = ""
     def inside():
         global info
-        nonlocal res,infoCoords
+        nonlocal res,infoCoord
         coord_message_list = (415,45,780,895)
         img = take_screenshot(device)
         sleep(2)
@@ -366,25 +366,17 @@ def reFreshFrame():
         data = getDataImage(leftMessage)
         infoCoords = getCoordList(data)
         #print(infoCoords)
-        founded = False
-        if len(infoCoords) >0:
+        if len(infoCoords) > 0:
             for i in range(0,len(infoCoords)):
-                if infoCoords[i]["x"] == info["x"] and infoCoords[i]["y"] == info["y"]:
-                    founded = True
-                    if(i == len(infoCoords) - 1): #last_element_in screen
-                        res = ""
-                    else:
-                        res = "action"
-                        infoCoords = infoCoords[i+1].copy()
-                        break
-            if founded is False:
-                infoCoords = infoCoords[0].copy()
+                if infoCoords[i]["x"] != info["x"] or infoCoords[i]["y"] != info["y"]:
+                    res = "action"
+                    infoCoord = infoCoords[i].copy()
     while res == "":
         print("reFreshFrame: No player request Duke title at the moment.")
         sleep(2)
         inside()
     if res == "action":
-        actionTitle(infoCoords)
+        actionTitle(infoCoord)
 coord_left_message = (415,50,760,840)
 coord_channel_close = (1365,105)
 #info = {'left': 77, 'top': 396, 'positionInImg': 39, 'x': 'X:781', 'y': 'Y:508)'}
